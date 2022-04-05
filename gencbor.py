@@ -526,16 +526,16 @@ class Encoder:
 
         if argument < 24:
             self._write_byte(fp, major_type << 5 | argument)
-        elif argument <= 2 ** 8:
+        elif argument < 2 ** 8:
             self._write_byte(fp, major_type << 5 | 24)
             self._write_byte(fp, argument)
-        elif argument <= 2 ** 16:
+        elif argument < 2 ** 16:
             self._write_byte(fp, major_type << 5 | 25)
             fp.write(struct.pack('>H', argument))
-        elif argument <= 2 ** 32:
+        elif argument < 2 ** 32:
             self._write_byte(fp, major_type << 5 | 26)
             fp.write(struct.pack('>L', argument))
-        elif argument <= 2 ** 64:
+        elif argument < 2 ** 64:
             self._write_byte(fp, major_type << 5 | 27)
             fp.write(struct.pack('>Q', argument))
 
