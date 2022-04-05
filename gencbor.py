@@ -228,7 +228,12 @@ class EndMarkerType():
     __slots__ = ()
 
 
+class EOFType():
+    __slots__ = ()
+
+
 end_marker = EndMarkerType()
+eof = EOFType()
 
 
 class DecodeError(Exception):
@@ -320,14 +325,17 @@ class Decoder:
         """
         return self.__decode_simple
 
-    def _read_byte(self, fp):
+    def _read_byte(self, fp, *, allow_eof=False):
         byte = fp.read(1)
         if not isinstance(byte, bytes):
             raise ValueError(
                 'Got a {} instead of a bytes value when reading data'
                 .format(type(byte)))
         if len(byte) == 0:
-            raise UnexpectedEOFError()
+            if not allow_eof:
+                raise UnexpectedEOFError()
+            else:
+                return None
         if len(byte) != 1:
             raise ValueError('Expected 1 byte, got {} bytes'.format(len(byte)))
         return byte[0]
@@ -345,8 +353,11 @@ class Decoder:
                 'Expected {} bytes, got {} bytes'.format(count, len(data)))
         return data
 
-    def _read_major_and_argument(self, fp, /, allow_end_marker):
-        initial_byte = self._read_byte(fp)
+    def _read_major_and_argument(self, fp, /, allow_end_marker,
+                                 allow_eof=False):
+        initial_byte = self._read_byte(fp, allow_eof=allow_eof)
+        if initial_byte is None:
+            return eof, None, None
         major_type = initial_byte >> 5
         additional = initial_byte & 31
 
@@ -370,7 +381,8 @@ class Decoder:
 
         return major_type, argument, additional
 
-    def read(self, fp, /, *, allow_end_marker=False, max_depth=None):
+    def read(self, fp, /, *, allow_end_marker=False, allow_eof=False,
+             max_depth=None):
         # https://datatracker.ietf.org/doc/html/rfc8949#section-3
 
         if max_depth is not None:
@@ -379,9 +391,9 @@ class Decoder:
             max_depth = max_depth - 1
 
         major_type, argument, additional = \
-            self._read_major_and_argument(fp, allow_end_marker)
-        if major_type is end_marker:
-            return end_marker
+            self._read_major_and_argument(fp, allow_end_marker, allow_eof)
+        if major_type in (end_marker, eof):
+            return major_type
 
         # https://datatracker.ietf.org/doc/html/rfc8949#section-3.1
         if major_type == 0:  # unsigned integer
