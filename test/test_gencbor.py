@@ -7,6 +7,18 @@ import os.path
 import sys
 
 
+def run_py_tests():
+    if gencbor.null == (22,):
+        raise Exception("gencbor.null == (22,)")
+
+    m = {gencbor.Tag(1, 2): 1, (1, 2): 2}
+    if len(m) != 2:
+        raise Exception("len(m) != 2")
+
+    if hash(gencbor.true) == hash(gencbor.false):
+        raise Exception("hash(gencbor.true) == hash(gencbor.false)")
+
+
 def to_json(value):
     if isinstance(value, gencbor.Tag):
         # TODO: Proper bigint decoding?
@@ -56,6 +68,7 @@ def main():
             if roundtrip:
                 print('Expected {}, got {}'.format(cbor, reencoded))
                 failures += 1
+
     for test in tests_fail:
         # print(test)
         cbor = base64.b16decode(test['hex'].upper())
@@ -69,6 +82,13 @@ def main():
             continue
         print('Unexpected success for {}'.format(cbor))
         failures += 1
+
+    try:
+        run_py_tests()
+    except Exception as e:
+        print('Test failed: {}'.format(e))
+        failures += 1
+
     if failures != 0:
         print('Got failures')
         sys.exit(1)

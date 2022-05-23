@@ -24,6 +24,7 @@
 # https://datatracker.ietf.org/doc/html/rfc8949
 
 import collections.abc
+import dataclasses
 import enum
 import io
 import struct
@@ -33,11 +34,11 @@ __all__ = ('SimpleValue', 'false', 'true', 'null', 'undefined', 'Type',
            'default_encoder', 'decode', 'encode')
 
 
-class SimpleValue(collections.namedtuple('SimpleValue', ['value'])):
-    __slots__ = ()
-    __hash__ = collections.namedtuple.__hash__
+@dataclasses.dataclass(frozen=True)
+class SimpleValue:
+    value: int
 
-    def __new__(cls, value: int, /):
+    def __init__(self, value: int, /):
         if not isinstance(value, int):
             raise ValueError('value is not an int value')
         value = int(value)
@@ -45,7 +46,7 @@ class SimpleValue(collections.namedtuple('SimpleValue', ['value'])):
             raise ValueError('value is out of range')
         if value >= 24 and value < 32:
             raise ValueError('reserved value')
-        return super(SimpleValue, cls).__new__(cls, value)
+        object.__setattr__(self, 'value', value)
 
     def __repr__(self):
         if self.value == 20:
@@ -208,16 +209,19 @@ class Map(collections.abc.Mapping):
         return self._hash
 
 
-class Tag(collections.namedtuple('Tag', ['number', 'content'])):
-    __slots__ = ()
+@dataclasses.dataclass(frozen=True)
+class Tag:
+    number: int
+    content: object
 
-    def __new__(cls, number, content):
+    def __init__(self, number, content):
         if not isinstance(number, int):
             raise ValueError('number is not an int value')
         number = int(number)
         if number < 0 or number >= 2**64:
             raise ValueError('number is out of range')
-        return super(Tag, cls).__new__(cls, number, content)
+        object.__setattr__(self, 'number', number)
+        object.__setattr__(self, 'content', content)
 
     def __repr__(self):
         return "{}({}, {})".format(self.__class__.__name__,
